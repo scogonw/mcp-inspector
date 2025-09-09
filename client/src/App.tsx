@@ -111,6 +111,27 @@ const App = () => {
   const [config, setConfig] = useState<InspectorConfig>(() =>
     initializeInspectorConfig(CONFIG_LOCAL_STORAGE_KEY),
   );
+  // Custom headers state - array of {name, value} objects
+  const [customHeaders, setCustomHeaders] = useState<
+    Array<{ name: string; value: string }>
+  >(() => {
+    const stored = localStorage.getItem("lastCustomHeaders");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // Fallback to legacy format
+        const bearerToken = localStorage.getItem("lastBearerToken") || "";
+        const headerName = localStorage.getItem("lastHeaderName") || "";
+        if (bearerToken && headerName) {
+          return [{ name: headerName, value: bearerToken }];
+        }
+      }
+    }
+    return [];
+  });
+
+  // Legacy state for backward compatibility
   const [bearerToken, setBearerToken] = useState<string>(() => {
     return localStorage.getItem("lastBearerToken") || "";
   });
@@ -151,6 +172,32 @@ const App = () => {
   const updateAuthState = (updates: Partial<AuthDebuggerState>) => {
     setAuthState((prev) => ({ ...prev, ...updates }));
   };
+
+  // Custom headers management functions
+  const addCustomHeader = () => {
+    setCustomHeaders((prev) => [...prev, { name: "", value: "" }]);
+  };
+
+  const removeCustomHeader = (index: number) => {
+    setCustomHeaders((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateCustomHeader = (
+    index: number,
+    field: "name" | "value",
+    value: string,
+  ) => {
+    setCustomHeaders((prev) =>
+      prev.map((header, i) =>
+        i === index ? { ...header, [field]: value } : header,
+      ),
+    );
+  };
+
+  // Save custom headers to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("lastCustomHeaders", JSON.stringify(customHeaders));
+  }, [customHeaders]);
   const nextRequestId = useRef(0);
   const rootsRef = useRef<Root[]>([]);
 
@@ -213,8 +260,9 @@ const App = () => {
     args,
     sseUrl,
     env,
-    bearerToken,
-    headerName,
+    customHeaders,
+    bearerToken, // Keep for backward compatibility
+    headerName, // Keep for backward compatibility
     oauthClientId,
     oauthScope,
     config,
@@ -810,6 +858,11 @@ const App = () => {
           setEnv={setEnv}
           config={config}
           setConfig={setConfig}
+          customHeaders={customHeaders}
+          setCustomHeaders={setCustomHeaders}
+          addCustomHeader={addCustomHeader}
+          removeCustomHeader={removeCustomHeader}
+          updateCustomHeader={updateCustomHeader}
           bearerToken={bearerToken}
           setBearerToken={setBearerToken}
           headerName={headerName}

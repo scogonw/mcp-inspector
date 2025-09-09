@@ -51,7 +51,8 @@ const getHttpHeaders = (req: express.Request): Record<string, string> => {
     if (
       lowerKey.startsWith("mcp-") ||
       lowerKey === "authorization" ||
-      lowerKey === "last-event-id"
+      lowerKey === "last-event-id" ||
+      lowerKey.startsWith("x-custom-header-") // Support custom headers
     ) {
       // Exclude the proxy's own authentication header
       if (lowerKey !== "x-mcp-proxy-auth") {
@@ -72,8 +73,25 @@ const getHttpHeaders = (req: express.Request): Record<string, string> => {
     }
   }
 
-  // Handle the custom auth header separately. We expect `x-custom-auth-header`
-  // to be a string containing the name of the actual authentication header.
+  // Handle custom headers sent with x-custom-header- prefix
+  // This allows the client to send multiple custom headers
+  for (const key in req.headers) {
+    if (key.toLowerCase().startsWith("x-custom-header-")) {
+      const actualHeaderName = key.substring("x-custom-header-".length);
+      const value = req.headers[key];
+
+      if (typeof value === "string") {
+        headers[actualHeaderName] = value;
+      } else if (Array.isArray(value)) {
+        const lastValue = value.at(-1);
+        if (lastValue !== undefined) {
+          headers[actualHeaderName] = lastValue;
+        }
+      }
+    }
+  }
+
+  // Handle the legacy custom auth header for backward compatibility
   const customAuthHeaderName = req.headers["x-custom-auth-header"];
   if (typeof customAuthHeaderName === "string") {
     const lowerCaseHeaderName = customAuthHeaderName.toLowerCase();

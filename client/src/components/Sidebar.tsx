@@ -14,6 +14,8 @@ import {
   RefreshCwOff,
   Copy,
   CheckCheck,
+  Plus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,9 +53,18 @@ interface SidebarProps {
   setSseUrl: (url: string) => void;
   env: Record<string, string>;
   setEnv: (env: Record<string, string>) => void;
-  bearerToken: string;
+  customHeaders: Array<{ name: string; value: string }>;
+  setCustomHeaders: (headers: Array<{ name: string; value: string }>) => void;
+  addCustomHeader: () => void;
+  removeCustomHeader: (index: number) => void;
+  updateCustomHeader: (
+    index: number,
+    field: "name" | "value",
+    value: string,
+  ) => void;
+  bearerToken: string; // Keep for backward compatibility
   setBearerToken: (token: string) => void;
-  headerName?: string;
+  headerName?: string; // Keep for backward compatibility
   setHeaderName?: (name: string) => void;
   oauthClientId: string;
   setOauthClientId: (id: string) => void;
@@ -80,10 +91,15 @@ const Sidebar = ({
   setSseUrl,
   env,
   setEnv,
-  bearerToken,
-  setBearerToken,
-  headerName,
-  setHeaderName,
+  customHeaders,
+  setCustomHeaders: _setCustomHeaders,
+  addCustomHeader,
+  removeCustomHeader,
+  updateCustomHeader,
+  bearerToken: _bearerToken,
+  setBearerToken: _setBearerToken,
+  headerName: _headerName,
+  setHeaderName: _setHeaderName,
   oauthClientId,
   setOauthClientId,
   oauthScope,
@@ -497,37 +513,74 @@ const Sidebar = ({
             </Button>
             {showAuthConfig && (
               <>
-                {/* Bearer Token Section */}
+                {/* Custom Headers Section */}
                 <div className="space-y-2 p-3 rounded border">
-                  <h4 className="text-sm font-semibold flex items-center">
-                    API Token Authentication
-                  </h4>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Header Name</label>
-                    <Input
-                      placeholder="Authorization"
-                      onChange={(e) =>
-                        setHeaderName && setHeaderName(e.target.value)
-                      }
-                      data-testid="header-input"
-                      className="font-mono"
-                      value={headerName}
-                    />
-                    <label
-                      className="text-sm font-medium"
-                      htmlFor="bearer-token-input"
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold flex items-center">
+                      Custom Headers
+                    </h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomHeader}
+                      className="h-6 w-6 p-0"
+                      data-testid="add-header-button"
                     >
-                      Bearer Token
-                    </label>
-                    <Input
-                      id="bearer-token-input"
-                      placeholder="Bearer Token"
-                      value={bearerToken}
-                      onChange={(e) => setBearerToken(e.target.value)}
-                      data-testid="bearer-token-input"
-                      className="font-mono"
-                      type="password"
-                    />
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {customHeaders.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No custom headers configured. Click the + button to add
+                        one.
+                      </p>
+                    ) : (
+                      customHeaders.map((header, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Header Name (e.g., Authorization)"
+                              value={header.name}
+                              onChange={(e) =>
+                                updateCustomHeader(
+                                  index,
+                                  "name",
+                                  e.target.value,
+                                )
+                              }
+                              className="font-mono text-xs"
+                              data-testid={`header-name-input-${index}`}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Header Value"
+                              value={header.value}
+                              onChange={(e) =>
+                                updateCustomHeader(
+                                  index,
+                                  "value",
+                                  e.target.value,
+                                )
+                              }
+                              className="font-mono text-xs"
+                              type="password"
+                              data-testid={`header-value-input-${index}`}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeCustomHeader(index)}
+                            className="h-6 w-6 p-0"
+                            data-testid={`remove-header-button-${index}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
                 {transportType !== "stdio" && (

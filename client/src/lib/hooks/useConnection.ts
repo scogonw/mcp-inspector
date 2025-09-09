@@ -64,8 +64,9 @@ interface UseConnectionOptions {
   args: string;
   sseUrl: string;
   env: Record<string, string>;
-  bearerToken?: string;
-  headerName?: string;
+  customHeaders?: Array<{ name: string; value: string }>;
+  bearerToken?: string; // Keep for backward compatibility
+  headerName?: string; // Keep for backward compatibility
   oauthClientId?: string;
   oauthScope?: string;
   config: InspectorConfig;
@@ -86,6 +87,7 @@ export function useConnection({
   args,
   sseUrl,
   env,
+  customHeaders,
   bearerToken,
   headerName,
   oauthClientId,
@@ -376,21 +378,29 @@ export function useConnection({
       // proxying through the inspector server first.
       const headers: HeadersInit = {};
 
-      // Create an auth provider with the current server URL
-      const serverAuthProvider = new InspectorOAuthClientProvider(sseUrl);
+      // Add custom headers if provided
+      if (customHeaders && customHeaders.length > 0) {
+        customHeaders.forEach(({ name, value }) => {
+          if (name && value) {
+            // Use x-custom-header- prefix to send custom headers to the server
+            headers[`x-custom-header-${name}`] = value;
+          }
+        });
+      } else {
+        // Fallback to legacy single header approach for backward compatibility
+        const serverAuthProvider = new InspectorOAuthClientProvider(sseUrl);
+        const token =
+          bearerToken || (await serverAuthProvider.tokens())?.access_token;
+        if (token) {
+          const authHeaderName = headerName || "Authorization";
 
-      // Use manually provided bearer token if available, otherwise use OAuth tokens
-      const token =
-        bearerToken || (await serverAuthProvider.tokens())?.access_token;
-      if (token) {
-        const authHeaderName = headerName || "Authorization";
-
-        // Add custom header name as a special request header to let the server know which header to pass through
-        if (authHeaderName.toLowerCase() !== "authorization") {
-          headers[authHeaderName] = token;
-          headers["x-custom-auth-header"] = authHeaderName;
-        } else {
-          headers[authHeaderName] = `Bearer ${token}`;
+          // Add custom header name as a special request header to let the server know which header to pass through
+          if (authHeaderName.toLowerCase() !== "authorization") {
+            headers[authHeaderName] = token;
+            headers["x-custom-auth-header"] = authHeaderName;
+          } else {
+            headers[authHeaderName] = `Bearer ${token}`;
+          }
         }
       }
 
@@ -423,6 +433,8 @@ export function useConnection({
               proxyFullAddress,
             );
           }
+          // Create an auth provider with the current server URL for OAuth
+          const serverAuthProvider = new InspectorOAuthClientProvider(sseUrl);
           transportOptions = {
             authProvider: serverAuthProvider,
             eventSourceInit: {
