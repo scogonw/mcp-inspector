@@ -51,8 +51,7 @@ const getHttpHeaders = (req: express.Request): Record<string, string> => {
     if (
       lowerKey.startsWith("mcp-") ||
       lowerKey === "authorization" ||
-      lowerKey === "last-event-id" ||
-      lowerKey.startsWith("x-custom-header-") // Support custom headers
+      lowerKey === "last-event-id"
     ) {
       // Exclude the proxy's own authentication header
       if (lowerKey !== "x-mcp-proxy-auth") {
