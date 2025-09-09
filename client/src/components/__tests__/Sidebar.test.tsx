@@ -398,6 +398,65 @@ describe("Sidebar", () => {
     });
   });
 
+  describe("Custom Headers", () => {
+    const openAuthSection = () => {
+      const authButton = screen.getByRole("button", { name: /auth/i });
+      fireEvent.click(authButton);
+    };
+
+    describe("Visibility Toggle", () => {
+      it("should toggle header value visibility", () => {
+        const customHeaders = [
+          { name: "Authorization", value: "Bearer token123" },
+        ];
+        renderSidebar({ customHeaders });
+
+        openAuthSection();
+
+        const valueInput = screen.getByDisplayValue("Bearer token123");
+        expect(valueInput).toHaveProperty("type", "password");
+
+        const toggleButton = screen.getByRole("button", {
+          name: /show value/i,
+        });
+        fireEvent.click(toggleButton);
+
+        expect(valueInput).toHaveProperty("type", "text");
+      });
+
+      it("should maintain visibility state for multiple headers", () => {
+        const customHeaders = [
+          { name: "Authorization", value: "Bearer token123" },
+          { name: "X-API-Key", value: "api-key-456" },
+        ];
+        renderSidebar({ customHeaders });
+
+        openAuthSection();
+
+        const firstValueInput = screen.getByDisplayValue("Bearer token123");
+        const secondValueInput = screen.getByDisplayValue("api-key-456");
+
+        // Both should start as password type
+        expect(firstValueInput).toHaveProperty("type", "password");
+        expect(secondValueInput).toHaveProperty("type", "password");
+
+        // Toggle first header visibility
+        const firstToggleButton = screen.getByTestId("header-value-toggle-0");
+        fireEvent.click(firstToggleButton);
+
+        expect(firstValueInput).toHaveProperty("type", "text");
+        expect(secondValueInput).toHaveProperty("type", "password");
+
+        // Toggle second header visibility
+        const secondToggleButton = screen.getByTestId("header-value-toggle-1");
+        fireEvent.click(secondToggleButton);
+
+        expect(firstValueInput).toHaveProperty("type", "text");
+        expect(secondValueInput).toHaveProperty("type", "text");
+      });
+    });
+  });
+
   describe("Copy Server Features", () => {
     const getCopyButtons = () => {
       return {

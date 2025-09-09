@@ -117,6 +117,9 @@ const Sidebar = ({
   const [showAuthConfig, setShowAuthConfig] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [shownEnvVars, setShownEnvVars] = useState<Set<string>>(new Set());
+  const [shownHeaderValues, setShownHeaderValues] = useState<Set<number>>(
+    new Set(),
+  );
   const [copiedServerEntry, setCopiedServerEntry] = useState(false);
   const [copiedServerFile, setCopiedServerFile] = useState(false);
   const { toast } = useToast();
@@ -553,7 +556,7 @@ const Sidebar = ({
                               data-testid={`header-name-input-${index}`}
                             />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 flex gap-2">
                             <Input
                               placeholder="Header Value"
                               value={header.value}
@@ -565,9 +568,50 @@ const Sidebar = ({
                                 )
                               }
                               className="font-mono text-xs"
-                              type="password"
+                              type={
+                                shownHeaderValues.has(index)
+                                  ? "text"
+                                  : "password"
+                              }
                               data-testid={`header-value-input-${index}`}
                             />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 p-0 shrink-0"
+                              onClick={() => {
+                                setShownHeaderValues((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(index)) {
+                                    next.delete(index);
+                                  } else {
+                                    next.add(index);
+                                  }
+                                  return next;
+                                });
+                              }}
+                              aria-label={
+                                shownHeaderValues.has(index)
+                                  ? "Hide value"
+                                  : "Show value"
+                              }
+                              aria-pressed={shownHeaderValues.has(index)}
+                              title={
+                                shownHeaderValues.has(index)
+                                  ? "Hide value"
+                                  : "Show value"
+                              }
+                              data-testid={`header-value-toggle-${index}`}
+                            >
+                              {shownHeaderValues.has(index) ? (
+                                <Eye className="h-4 w-4" aria-hidden="true" />
+                              ) : (
+                                <EyeOff
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </Button>
                           </div>
                           <Button
                             variant="outline"
